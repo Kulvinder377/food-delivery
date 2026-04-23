@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MongoDB Students Demo</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 700px;
+        margin: 40px auto;
+        padding: 0 16px;
+      }
+      h1 {
+        margin-bottom: 8px;
+      }
+      form {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+      input,
+      button {
+        padding: 10px;
+        font-size: 14px;
+      }
+      ul {
+        padding-left: 18px;
+      }
+      li {
+        margin-bottom: 8px;
+      }
+      .status {
+        color: #0a7f2e;
+        margin-bottom: 12px;
+        min-height: 20px;
+      }
+      .error {
+        color: #b00020;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Students (MongoDB)</h1>
+    <p>Add a student, then refresh list from database.</p>
+
+    <form id="studentForm">
+      <input type="text" id="name" placeholder="Name" required />
+      <input type="number" id="age" placeholder="Age" required />
+      <input type="text" id="course" placeholder="Course" required />
+      <button type="submit">Add Student</button>
+    </form>
+
+    <button id="loadBtn">Load Students</button>
+    <p id="status" class="status"></p>
+
+    <ul id="studentList"></ul>
+
+    <script>
+      const form = document.getElementById("studentForm");
+      const list = document.getElementById("studentList");
+      const statusText = document.getElementById("status");
+      const loadBtn = document.getElementById("loadBtn");
+
+      function setStatus(message, isError = false) {
+        statusText.textContent = message;
+        statusText.className = isError ? "status error" : "status";
+      }
+
+      async function loadStudents() {
+        try {
+          setStatus("Loading students...");
+          const res = await fetch("/api/students");
+          const data = await res.json();
+
+          if (!res.ok) throw new Error(data.message || "Failed to load students");
+
+          list.innerHTML = "";
+          data.forEach((student) => {
+            const item = document.createElement("li");
+            item.textContent = `${student.name} | Age: ${student.age} | Course: ${student.course}`;
+            list.appendChild(item);
+          });
+
+          setStatus(`Loaded ${data.length} student(s)`);
+        } catch (error) {
+          setStatus(error.message, true);
+        }
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const payload = {
+          name: document.getElementById("name").value.trim(),
+          age: Number(document.getElementById("age").value),
+          course: document.getElementById("course").value.trim(),
+        };
+
+        try {
+          const res = await fetch("/api/students", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || "Failed to add student");
+
+          form.reset();
+          setStatus("Student added successfully");
+          loadStudents();
+        } catch (error) {
+          setStatus(error.message, true);
+        }
+      });
+
+      loadBtn.addEventListener("click", loadStudents);
+      loadStudents();
+    </script>
+  </body>
+</html>
